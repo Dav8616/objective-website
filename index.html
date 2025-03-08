@@ -14,6 +14,7 @@
         .top-bar button:hover { background-color: #444; }
         .objective { margin-bottom: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; }
         .objective button { margin-left: 10px; }
+        .message { font-size: 24px; color: lime; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -43,6 +44,7 @@
                 <span>Completed Objectives</span>
             </div>
             <ul id="completedList"></ul>
+            <div id="wonMessage" class="message"></div>
         </div>
     </div>
 
@@ -75,8 +77,8 @@
             let completionCodes = [];
             for (let i = 0; i < 10; i++) {
                 completionCodes.push(Math.random().toString(36).slice(-6)); // Generate a 6-character code
+                console.log(`[Request Password] Completion code for Objective ${i + 1}: ${completionCodes[i]}`);
             }
-            console.log("[Request Password] Completion codes generated: ", completionCodes);
 
             // Send email with password and completion codes
             sendEmail(currentPassword, completionCodes);
@@ -131,7 +133,14 @@
                 console.log(`[Objective Completed] Objective: ${objectives[index].name}, Points Awarded: 10`);
                 updateObjectives();
                 updateCompletedObjectives();
-                alert("Objective completed! You earned 10 points.");
+
+                // Check if it's the last objective
+                if (completedObjectives.length === 10) {
+                    document.getElementById("wonMessage").innerText = "You won, now go touch some grass!";
+                    console.log("[Objective Completed] User has completed all objectives.");
+                } else {
+                    alert("Objective completed! You earned 10 points.");
+                }
             } else {
                 console.log("[Objective Completed] Error: Incorrect completion code.");
                 alert("Incorrect completion code!");
