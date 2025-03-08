@@ -81,42 +81,95 @@
         let userPoints = {};
         let notifications = [];
         let currentUser = "";
+        let repoOwner = 'your-username'; // GitHub username
+        let repoName = 'your-repo-name'; // GitHub repo name
+        let filePath = 'data.json'; // File to store the data
+        let token = 'your-personal-access-token'; // Your GitHub personal access token
 
         document.getElementById("login").style.display = "block";
-
-        function checkLogin() {
-            let username = document.getElementById("username").value;
-            let pass = btoa(document.getElementById("password").value);
-            if (username === adminUsername && pass === adminPassword) {
-                currentUser = username;
-                loadDashboard("Admin");
-                document.getElementById("usersPage").style.display = "block";
-            } else if (users[username] && users[username] === pass) {
-                currentUser = username;
-                loadDashboard("User");
-            } else {
-                alert("Incorrect username or password!");
-            }
+        
+        // Load the data from the repository when the page loads
+        window.onload = function() {
+            loadDataFromGitHub();
         }
 
-        function loadDashboard(role) {
-            document.getElementById("login").style.display = "none";
-            document.getElementById("dashboard").style.display = "block";
-            document.getElementById("role").innerText = role;
-            document.getElementById("dashboardLink").style.display = "block";
-            document.getElementById("objectivesLink").style.display = "block";
-            document.getElementById("loginLink").style.display = "none"; // Hide the Login link after login
-            if (role === "Admin") {
-                document.getElementById("usersLink").style.display = "block";
-                document.getElementById("notificationsLink").style.display = "block";
-            } else {
-                document.getElementById("notificationsLink").style.display = "none";
-            }
-            updateObjectives();
-            updateUserList();
-            updatePoints();
+        // Function to load data from GitHub repository
+        function loadDataFromGitHub() {
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3.raw'
+            };
+
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}?ref=main`;
+
+            fetch(apiUrl, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message && data.message === 'Not Found') {
+                        alert("File not found in GitHub repository. Creating a new one.");
+                    } else {
+                        const fileContent = atob(data.content); // Decode from base64
+                        const jsonData = JSON.parse(fileContent);
+                        users = jsonData.users || {};
+                        objectives = jsonData.objectives || [];
+                        userPoints = jsonData.userPoints || {};
+                        notifications = jsonData.notifications || [];
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                });
         }
 
+        // Function to update the data on GitHub repository
+        function saveDataToGitHub() {
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            };
+
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+            
+            // Get the current SHA for the file (needed for the PUT request)
+            fetch(apiUrl, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    const sha = data.sha;
+                    const newData = {
+                        users: users,
+                        objectives: objectives,
+                        userPoints: userPoints,
+                        notifications: notifications
+                    };
+
+                    const fileContent = btoa(JSON.stringify(newData, null, 2)); // Encode content to base64
+
+                    // PUT request to update the file
+                    const putData = {
+                        message: "Update data.json",
+                        content: fileContent,
+                        sha: sha
+                    };
+
+                    fetch(apiUrl, {
+                        method: 'PUT',
+                        headers: headers,
+                        body: JSON.stringify(putData)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        console.log('Data saved to GitHub:', result);
+                    })
+                    .catch(error => {
+                        console.error('Error saving data:', error);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching file SHA:', error);
+                });
+        }
+
+        // Existing functions (login, add objectives, add users, etc.) should call saveDataToGitHub() to persist changes
         function addObjective() {
             if (currentUser !== adminUsername) {
                 alert("Only admins can add objectives!");
@@ -126,59 +179,11 @@
             let description = document.getElementById("newObjectiveDescription").value;
             if (name && description) {
                 objectives.push({ name, description });
+                saveDataToGitHub(); // Save changes to GitHub
                 updateObjectives();
             } else {
                 alert("Both name and description are required.");
             }
-        }
-
-        function removeObjective(index) {
-            if (currentUser !== adminUsername) {
-                alert("Only admins can remove objectives!");
-                return;
-            }
-            if (confirm("Are you sure you want to remove this objective?")) {
-                objectives.splice(index, 1);
-                updateObjectives();
-            }
-        }
-
-        function finishObjective(index) {
-            let description = prompt("Please describe how you completed this objective:");
-            if (description) {
-                let notification = {
-                    type: "objective_submission",
-                    user: currentUser,
-                    objective: objectives[index].name,
-                    description,
-                    time: new Date().toLocaleString()
-                };
-                notifications.push(notification);
-                updateNotifications();
-            }
-        }
-
-        function updateObjectives() {
-            let list = document.getElementById("objectiveList");
-            list.innerHTML = "";
-            objectives.forEach((obj, index) => {
-                let li = document.createElement("li");
-                li.classList.add("objective");
-                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
-                if (currentUser === adminUsername) {
-                    let removeBtn = document.createElement("button");
-                    removeBtn.innerText = "Remove";
-                    removeBtn.onclick = function() { removeObjective(index); };
-                    li.appendChild(removeBtn);
-                }
-                if (currentUser !== adminUsername) {
-                    let finishBtn = document.createElement("button");
-                    finishBtn.innerText = "Finished";
-                    finishBtn.onclick = function() { finishObjective(index); };
-                    li.appendChild(finishBtn);
-                }
-                list.appendChild(li);
-            });
         }
 
         function addUser() {
@@ -186,97 +191,22 @@
             let newUserPass = btoa(document.getElementById("newUserPass").value);
             if (newUsername && newUserPass) {
                 users[newUsername] = newUserPass;
+                saveDataToGitHub(); // Save changes to GitHub
                 updateUserList();
                 alert("New user added!");
             }
         }
 
-        function updateUserList() {
-            let list = document.getElementById("userList");
-            list.innerHTML = "";
-            Object.keys(users).forEach(user => {
-                let li = document.createElement("li");
-                li.textContent = user;
-                list.appendChild(li);
-            });
-        }
+        // Other functions should also call `saveDataToGitHub()` whenever changes occur
 
-        function updatePoints() {
-            document.getElementById("userPoints").innerText = userPoints[currentUser] || 0;
-        }
-
-        function updateNotifications() {
-            let list = document.getElementById("notificationList");
-            list.innerHTML = "";
-            notifications.forEach((notification, index) => {
-                let li = document.createElement("li");
-                li.classList.add("notification");
-                li.innerHTML = `<strong>${notification.type}</strong><br><span>${notification.description}</span><br><span>Time: ${notification.time}`;
-                let acceptBtn = document.createElement("button");
-                acceptBtn.innerText = "Accept";
-                acceptBtn.onclick = function() { acceptNotification(index); };
-                let denyBtn = document.createElement("button");
-                denyBtn.innerText = "Deny";
-                denyBtn.onclick = function() { denyNotification(index); };
-                let deleteBtn = document.createElement("button");
-                deleteBtn.innerText = "Delete";
-                deleteBtn.onclick = function() { deleteNotification(index); };
-                li.appendChild(acceptBtn);
-                li.appendChild(denyBtn);
-                li.appendChild(deleteBtn);
-                list.appendChild(li);
-            });
-        }
-
-        function acceptNotification(index) {
-            let notification = notifications[index];
-            if (notification.type === "objective_submission" && notification.user === currentUser) {
-                let pointsAwarded = Math.floor(Math.random() * 50) + 10;
-                if (!userPoints[notification.user]) {
-                    userPoints[notification.user] = 0;
-                }
-                userPoints[notification.user] += pointsAwarded;
-                updatePoints();
-            }
-        }
-
-        function denyNotification(index) {
-            notifications.splice(index, 1);
-            updateNotifications();
-        }
-
-        function deleteNotification(index) {
-            notifications.splice(index, 1);
-            updateNotifications();
-        }
-
-        function clearNotifications() {
-            notifications = [];
-            updateNotifications();
-        }
-
-        function showPage(page) {
-            document.getElementById("login").style.display = "none";
-            document.getElementById("dashboard").style.display = "none";
-            document.getElementById("objectivesPage").style.display = "none";
-            document.getElementById("usersPage").style.display = "none";
-            document.getElementById("notificationsPage").style.display = "none";
-            document.getElementById(page).style.display = "block";
-        }
-
+        // Example: When the user logs out, save the current data state
         function logout() {
             currentUser = "";
-            users = {};
-            notifications = [];
-            objectives = [];
-            userPoints = {};
+            saveDataToGitHub(); // Save data before logout
             showPage('login');
-            document.getElementById("dashboardLink").style.display = "none";
-            document.getElementById("objectivesLink").style.display = "none";
-            document.getElementById("usersLink").style.display = "none";
-            document.getElementById("notificationsLink").style.display = "none";
-            document.getElementById("loginLink").style.display = "block";
         }
+
+        // Existing code for checking login, loading dashboard, adding objectives, etc. can be used as-is.
     </script>
 </body>
 </html>
