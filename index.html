@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #121212; color: white; text-align: center; }
+        #login, #dashboard, #objectivesPage, #usersPage, #notificationsPage { display: none; }
+        .container { max-width: 600px; margin: auto; padding: 20px; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 200px; height: 100%; background: #1e1e1e; padding: 10px; }
+        .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; border-bottom: 1px solid #444; }
+        .sidebar a:hover { background: #333; }
+        .top-bar { background-color: #333; padding: 10px; color: white; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar button { background-color: #555; color: white; border: none; padding: 10px; cursor: pointer; }
+        .top-bar button:hover { background-color: #444; }
+        .objective { margin-bottom: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; }
+        .objective button { margin-left: 10px; }
+        .notification { padding: 10px; background-color: #444; margin-bottom: 10px; border-radius: 5px; }
+        .notification button { margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="#" onclick="showPage('login')" id="loginLink">Login</a>
+        <a href="#" id="dashboardLink" style="display:none;" onclick="showPage('dashboard')">Dashboard</a>
+        <a href="#" id="objectivesLink" style="display:none;" onclick="showPage('objectivesPage')">Objectives</a>
+        <a href="#" id="usersLink" style="display:none;" onclick="showPage('usersPage')">Users</a>
+        <a href="#" id="notificationsLink" style="display:none;" onclick="showPage('notificationsPage')">Notifications</a>
+    </div>
+    
+    <div class="container">
+        <div id="login">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Enter Username"><br><br>
+            <input type="password" id="password" placeholder="Enter Password"><br><br>
+            <button onclick="checkLogin()">Login</button>
+        </div>
+        
+        <div id="dashboard">
+            <div class="top-bar">
+                <span>Dashboard</span>
+                <button onclick="logout()">Logout</button>
+            </div>
+            <h2>Welcome, <span id="role"></span>!</h2>
+            <h3>Your Points: <span id="userPoints">0</span></h3>
+        </div>
+
+        <div id="objectivesPage">
+            <div class="top-bar">
+                <span>Objectives</span>
+                <input type="text" id="newObjectiveName" placeholder="Objective Name">
+                <input type="text" id="newObjectiveDescription" placeholder="Objective Description">
+                <button onclick="addObjective()">Add Objective</button>
+            </div>
+            <ul id="objectiveList"></ul>
+        </div>
+
+        <div id="usersPage" style="display:none;">
+            <div class="top-bar">
+                <span>Users</span>
+                <input type="text" id="newUsername" placeholder="New Username">
+                <input type="password" id="newUserPass" placeholder="New User Password">
+                <button onclick="addUser()">Add User</button>
+            </div>
+            <ul id="userList"></ul>
+        </div>
+
+        <div id="notificationsPage" style="display:none;">
+            <div class="top-bar">
+                <span>Notifications</span>
+                <button onclick="clearNotifications()">Clear All</button>
+            </div>
+            <ul id="notificationList"></ul>
+        </div>
+    </div>
+    
+    <script>
+        let users = {}; // No users initially
+        let adminUsername = "admin";
+        let adminPassword = btoa("adminpass"); // Encrypted password storage
+        let objectives = [];
+        let userPoints = {};
+        let notifications = [];
+        let currentUser = "";
+
+        document.getElementById("login").style.display = "block";
+
+        function checkLogin() {
+            let username = document.getElementById("username").value;
+            let pass = btoa(document.getElementById("password").value);
+            if (username === adminUsername && pass === adminPassword) {
+                currentUser = username;
+                loadDashboard("Admin");
+                document.getElementById("usersPage").style.display = "block";
+            } else if (users[username] && users[username] === pass) {
+                currentUser = username;
+                loadDashboard("User");
+            } else {
+                alert("Incorrect username or password!");
+            }
+        }
+
+        function loadDashboard(role) {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("dashboard").style.display = "block";
+            document.getElementById("role").innerText = role;
+            document.getElementById("dashboardLink").style.display = "block";
+            document.getElementById("objectivesLink").style.display = "block";
+            document.getElementById("loginLink").style.display = "none"; // Hide the Login link after login
+            if (role === "Admin") {
+                document.getElementById("usersLink").style.display = "block";
+                document.getElementById("notificationsLink").style.display = "block";
+            } else {
+                document.getElementById("notificationsLink").style.display = "none";
+            }
+            updateObjectives();
+            updateUserList();
+            updatePoints();
+        }
+
+        function addObjective() {
+            if (currentUser !== adminUsername) {
+                alert("Only admins can add objectives!");
+                return;
+            }
+            let name = document.getElementById("newObjectiveName").value;
+            let description = document.getElementById("newObjectiveDescription").value;
+            if (name && description) {
+                objectives.push({ name, description });
+                updateObjectives();
+            } else {
+                alert("Both name and description are required.");
+            }
+        }
+
+        function removeObjective(index) {
+            if (currentUser !== adminUsername) {
+                alert("Only admins can remove objectives!");
+                return;
+            }
+            if (confirm("Are you sure you want to remove this objective?")) {
+                objectives.splice(index, 1);
+                updateObjectives();
+            }
+        }
+
+        function finishObjective(index) {
+            let description = prompt("Please describe how you completed this objective:");
+            if (description) {
+                let notification = {
+                    type: "objective_submission",
+                    user: currentUser,
+                    objective: objectives[index].name,
+                    description,
+                    time: new Date().toLocaleString()
+                };
+                notifications.push(notification);
+                updateNotifications();
+            }
+        }
+
+        function updateObjectives() {
+            let list = document.getElementById("objectiveList");
+            list.innerHTML = "";
+            objectives.forEach((obj, index) => {
+                let li = document.createElement("li");
+                li.classList.add("objective");
+                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
+                if (currentUser === adminUsername) {
+                    let removeBtn = document.createElement("button");
+                    removeBtn.innerText = "Remove";
+                    removeBtn.onclick = function() { removeObjective(index); };
+                    li.appendChild(removeBtn);
+                }
+                if (currentUser !== adminUsername) {
+                    let finishBtn = document.createElement("button");
+                    finishBtn.innerText = "Finished";
+                    finishBtn.onclick = function() { finishObjective(index); };
+                    li.appendChild(finishBtn);
+                }
+                list.appendChild(li);
+            });
+        }
+
+        function addUser() {
+            let newUsername = document.getElementById("newUsername").value;
+            let newUserPass = btoa(document.getElementById("newUserPass").value);
+            if (newUsername && newUserPass) {
+                users[newUsername] = newUserPass;
+                updateUserList();
+                alert("New user added!");
+            }
+        }
+
+        function updateUserList() {
+            let list = document.getElementById("userList");
+            list.innerHTML = "";
+            Object.keys(users).forEach(user => {
+                let li = document.createElement("li");
+                li.textContent = user;
+                list.appendChild(li);
+            });
+        }
+
+        function updatePoints() {
+            document.getElementById("userPoints").innerText = userPoints[currentUser] || 0;
+        }
+
+        function updateNotifications() {
+            let list = document.getElementById("notificationList");
+            list.innerHTML = "";
+            notifications.forEach((notification, index) => {
+                let li = document.createElement("li");
+                li.classList.add("notification");
+                li.innerHTML = `<strong>${notification.type}</strong><br><span>${notification.description}</span><br><span>Time: ${notification.time}`;
+                let acceptBtn = document.createElement("button");
+                acceptBtn.innerText = "Accept";
+                acceptBtn.onclick = function() { acceptNotification(index); };
+                let denyBtn = document.createElement("button");
+                denyBtn.innerText = "Deny";
+                denyBtn.onclick = function() { denyNotification(index); };
+                let deleteBtn = document.createElement("button");
+                deleteBtn.innerText = "Delete";
+                deleteBtn.onclick = function() { deleteNotification(index); };
+                li.appendChild(acceptBtn);
+                li.appendChild(denyBtn);
+                li.appendChild(deleteBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function acceptNotification(index) {
+            let notification = notifications[index];
+            if (notification.type === "objective_submission" && notification.user === currentUser) {
+                let pointsAwarded = Math.floor(Math.random() * 50) + 10;
+                if (!userPoints[notification.user]) {
+                    userPoints[notification.user] = 0;
+                }
+                userPoints[notification.user] += pointsAwarded;
+                updatePoints();
+            }
+        }
+
+        function denyNotification(index) {
+            notifications.splice(index, 1);
+            updateNotifications();
+        }
+
+        function deleteNotification(index) {
+            notifications.splice(index, 1);
+            updateNotifications();
+        }
+
+        function clearNotifications() {
+            notifications = [];
+            updateNotifications();
+        }
+
+        function showPage(page) {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("dashboard").style.display = "none";
+            document.getElementById("objectivesPage").style.display = "none";
+            document.getElementById("usersPage").style.display = "none";
+            document.getElementById("notificationsPage").style.display = "none";
+            document.getElementById(page).style.display = "block";
+        }
+
+        function logout() {
+            currentUser = "";
+            users = {};
+            notifications = [];
+            objectives = [];
+            userPoints = {};
+            showPage('login');
+            document.getElementById("dashboardLink").style.display = "none";
+            document.getElementById("objectivesLink").style.display = "none";
+            document.getElementById("usersLink").style.display = "none";
+            document.getElementById("notificationsLink").style.display = "none";
+            document.getElementById("loginLink").style.display = "block";
+        }
+    </script>
+</body>
+</html>
