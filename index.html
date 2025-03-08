@@ -4,7 +4,7 @@
     <title>Login Page</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #121212; color: white; text-align: center; }
-        #login, #dashboard, #objectivesPage, #usersPage, #notificationsPage { display: none; }
+        #login, #objectivesPage, #completedPage { display: none; }
         .container { max-width: 600px; margin: auto; padding: 20px; }
         .sidebar { position: fixed; left: 0; top: 0; width: 200px; height: 100%; background: #1e1e1e; padding: 10px; }
         .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; border-bottom: 1px solid #444; }
@@ -14,199 +14,140 @@
         .top-bar button:hover { background-color: #444; }
         .objective { margin-bottom: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; }
         .objective button { margin-left: 10px; }
-        .notification { padding: 10px; background-color: #444; margin-bottom: 10px; border-radius: 5px; }
-        .notification button { margin-left: 10px; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <a href="#" onclick="showPage('login')" id="loginLink">Login</a>
-        <a href="#" id="dashboardLink" style="display:none;" onclick="showPage('dashboard')">Dashboard</a>
         <a href="#" id="objectivesLink" style="display:none;" onclick="showPage('objectivesPage')">Objectives</a>
-        <a href="#" id="usersLink" style="display:none;" onclick="showPage('usersPage')">Users</a>
-        <a href="#" id="notificationsLink" style="display:none;" onclick="showPage('notificationsPage')">Notifications</a>
+        <a href="#" id="completedLink" style="display:none;" onclick="showPage('completedPage')">Completed</a>
     </div>
-    
+
     <div class="container">
         <div id="login">
             <h2>Login</h2>
-            <input type="text" id="username" placeholder="Enter Username"><br><br>
             <input type="password" id="password" placeholder="Enter Password"><br><br>
-            <button onclick="checkLogin()">Login</button>
-        </div>
-        
-        <div id="dashboard">
-            <div class="top-bar">
-                <span>Dashboard</span>
-                <button onclick="logout()">Logout</button>
-            </div>
-            <h2>Welcome, <span id="role"></span>!</h2>
-            <h3>Your Points: <span id="userPoints">0</span></h3>
+            <button onclick="checkLogin()">Login</button><br><br>
+            <button onclick="requestPassword()">Request Password</button>
         </div>
 
         <div id="objectivesPage">
             <div class="top-bar">
                 <span>Objectives</span>
-                <input type="text" id="newObjectiveName" placeholder="Objective Name">
-                <input type="text" id="newObjectiveDescription" placeholder="Objective Description">
-                <button onclick="addObjective()">Add Objective</button>
             </div>
             <ul id="objectiveList"></ul>
         </div>
 
-        <div id="usersPage" style="display:none;">
+        <div id="completedPage">
             <div class="top-bar">
-                <span>Users</span>
-                <input type="text" id="newUsername" placeholder="New Username">
-                <input type="password" id="newUserPass" placeholder="New User Password">
-                <button onclick="addUser()">Add User</button>
+                <span>Completed Objectives</span>
             </div>
-            <ul id="userList"></ul>
-        </div>
-
-        <div id="notificationsPage" style="display:none;">
-            <div class="top-bar">
-                <span>Notifications</span>
-                <button onclick="clearNotifications()">Clear All</button>
-            </div>
-            <ul id="notificationList"></ul>
+            <ul id="completedList"></ul>
         </div>
     </div>
-    
+
     <script>
-        let users = {}; // No users initially
-        let adminUsername = "admin";
-        let adminPassword = btoa("adminpass"); // Encrypted password storage
-        let objectives = [];
-        let userPoints = {};
-        let notifications = [];
-        let currentUser = "";
-        let repoOwner = 'Dav8616'; // GitHub username
-        let repoName = 'objective-website'; // GitHub repo name
-        let filePath = 'data.json'; // File to store the data
-        
+        let objectives = []; // List of objectives
+        let completedObjectives = []; // List of completed objectives
+        let userPoints = 0; // User points
+        let currentPassword = "randomGeneratedPassword"; // Password, to be set after "Request Password" click
 
         document.getElementById("login").style.display = "block";
-        
-        // Load the data from the repository when the page loads
-        window.onload = function() {
-            loadDataFromGitHub();
-        }
 
-        // Function to load data from GitHub repository
-        function loadDataFromGitHub() {
-            const headers = {
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3.raw'
-            };
-
-            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}?ref=main`;
-
-            fetch(apiUrl, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message && data.message === 'Not Found') {
-                        alert("File not found in GitHub repository. Creating a new one.");
-                    } else {
-                        const fileContent = atob(data.content); // Decode from base64
-                        const jsonData = JSON.parse(fileContent);
-                        users = jsonData.users || {};
-                        objectives = jsonData.objectives || [];
-                        userPoints = jsonData.userPoints || {};
-                        notifications = jsonData.notifications || [];
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading data:', error);
-                });
-        }
-
-        // Function to update the data on GitHub repository
-        function saveDataToGitHub() {
-            const headers = {
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3+json'
-            };
-
-            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
-            
-            // Get the current SHA for the file (needed for the PUT request)
-            fetch(apiUrl, { headers })
-                .then(response => response.json())
-                .then(data => {
-                    const sha = data.sha;
-                    const newData = {
-                        users: users,
-                        objectives: objectives,
-                        userPoints: userPoints,
-                        notifications: notifications
-                    };
-
-                    const fileContent = btoa(JSON.stringify(newData, null, 2)); // Encode content to base64
-
-                    // PUT request to update the file
-                    const putData = {
-                        message: "Update data.json",
-                        content: fileContent,
-                        sha: sha
-                    };
-
-                    fetch(apiUrl, {
-                        method: 'PUT',
-                        headers: headers,
-                        body: JSON.stringify(putData)
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        console.log('Data saved to GitHub:', result);
-                    })
-                    .catch(error => {
-                        console.error('Error saving data:', error);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching file SHA:', error);
-                });
-        }
-
-        // Existing functions (login, add objectives, add users, etc.) should call saveDataToGitHub() to persist changes
-        function addObjective() {
-            if (currentUser !== adminUsername) {
-                alert("Only admins can add objectives!");
-                return;
-            }
-            let name = document.getElementById("newObjectiveName").value;
-            let description = document.getElementById("newObjectiveDescription").value;
-            if (name && description) {
-                objectives.push({ name, description });
-                saveDataToGitHub(); // Save changes to GitHub
-                updateObjectives();
+        function checkLogin() {
+            let passwordInput = document.getElementById("password").value;
+            if (passwordInput === currentPassword) {
+                userPoints = 0; // Reset points when login
+                loadObjectivesPage();
             } else {
-                alert("Both name and description are required.");
+                alert("Incorrect password!");
             }
         }
 
-        function addUser() {
-            let newUsername = document.getElementById("newUsername").value;
-            let newUserPass = btoa(document.getElementById("newUserPass").value);
-            if (newUsername && newUserPass) {
-                users[newUsername] = newUserPass;
-                saveDataToGitHub(); // Save changes to GitHub
-                updateUserList();
-                alert("New user added!");
+        function requestPassword() {
+            // Generate a random password
+            currentPassword = Math.random().toString(36).slice(-8);
+
+            // Generate random completion codes for the 10 objectives
+            let completionCodes = [];
+            for (let i = 0; i < 10; i++) {
+                completionCodes.push(Math.random().toString(36).slice(-6)); // Generate a 6-character code
+            }
+
+            // Send email with password and completion codes
+            sendEmail(currentPassword, completionCodes);
+
+            alert("Password and completion codes have been sent to your email.");
+        }
+
+        function sendEmail(password, completionCodes) {
+            // Fake function to simulate email sending
+            console.log("Email sent to david@utahpci.org");
+            console.log("Password: " + password);
+            console.log("Completion Codes: " + completionCodes.join(", "));
+        }
+
+        function loadObjectivesPage() {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("objectivesLink").style.display = "block";
+            document.getElementById("completedLink").style.display = "block";
+            document.getElementById("objectivesPage").style.display = "block";
+
+            // Set up objectives
+            objectives = [];
+            for (let i = 1; i <= 10; i++) {
+                objectives.push({ name: `Objective ${i}`, description: `Description for objective ${i}`, completionCode: Math.random().toString(36).slice(-6) });
+            }
+            updateObjectives();
+        }
+
+        function updateObjectives() {
+            let list = document.getElementById("objectiveList");
+            list.innerHTML = "";
+            objectives.forEach((obj, index) => {
+                let li = document.createElement("li");
+                li.classList.add("objective");
+                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
+                let completeBtn = document.createElement("button");
+                completeBtn.innerText = "Completed";
+                completeBtn.onclick = function() { completeObjective(index); };
+                li.appendChild(completeBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function completeObjective(index) {
+            let completionCode = prompt("Please enter the completion code for this objective:");
+            if (completionCode === objectives[index].completionCode) {
+                // Award points and move to completed objectives
+                userPoints += 10;
+                completedObjectives.push(objectives[index]);
+                objectives.splice(index, 1); // Remove completed objective from the list
+                updateObjectives();
+                updateCompletedObjectives();
+                alert("Objective completed! You earned 10 points.");
+            } else {
+                alert("Incorrect completion code!");
             }
         }
 
-        // Other functions should also call `saveDataToGitHub()` whenever changes occur
-
-        // Example: When the user logs out, save the current data state
-        function logout() {
-            currentUser = "";
-            saveDataToGitHub(); // Save data before logout
-            showPage('login');
+        function updateCompletedObjectives() {
+            let list = document.getElementById("completedList");
+            list.innerHTML = "";
+            completedObjectives.forEach((obj) => {
+                let li = document.createElement("li");
+                li.classList.add("objective");
+                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
+                list.appendChild(li);
+            });
         }
 
-        // Existing code for checking login, loading dashboard, adding objectives, etc. can be used as-is.
+        function showPage(page) {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("objectivesPage").style.display = "none";
+            document.getElementById("completedPage").style.display = "none";
+            document.getElementById(page).style.display = "block";
+        }
     </script>
 </body>
 </html>
