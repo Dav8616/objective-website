@@ -57,9 +57,11 @@
         function checkLogin() {
             let passwordInput = document.getElementById("password").value;
             if (passwordInput === currentPassword) {
+                console.log("[Login] Success: User logged in with correct password.");
                 userPoints = 0; // Reset points when login
                 loadObjectivesPage();
             } else {
+                console.log("[Login] Error: Incorrect password.");
                 alert("Incorrect password!");
             }
         }
@@ -67,24 +69,25 @@
         function requestPassword() {
             // Generate a random password
             currentPassword = Math.random().toString(36).slice(-8);
+            console.log(`[Request Password] New password generated: ${currentPassword}`);
 
             // Generate random completion codes for the 10 objectives
             let completionCodes = [];
             for (let i = 0; i < 10; i++) {
                 completionCodes.push(Math.random().toString(36).slice(-6)); // Generate a 6-character code
             }
+            console.log("[Request Password] Completion codes generated: ", completionCodes);
 
             // Send email with password and completion codes
             sendEmail(currentPassword, completionCodes);
-
             alert("Password and completion codes have been sent to your email.");
         }
 
         function sendEmail(password, completionCodes) {
             // Fake function to simulate email sending
-            console.log("Email sent to david@utahpci.org");
-            console.log("Password: " + password);
-            console.log("Completion Codes: " + completionCodes.join(", "));
+            console.log("[Email] Simulating email sent to david@utahpci.org.");
+            console.log(`[Email] Password: ${password}`);
+            console.log(`[Email] Completion Codes: ${completionCodes.join(", ")}`);
         }
 
         function loadObjectivesPage() {
@@ -98,6 +101,7 @@
             for (let i = 1; i <= 10; i++) {
                 objectives.push({ name: `Objective ${i}`, description: `Description for objective ${i}`, completionCode: Math.random().toString(36).slice(-6) });
             }
+            console.log("[Objectives] Objectives initialized:", objectives);
             updateObjectives();
         }
 
@@ -114,6 +118,7 @@
                 li.appendChild(completeBtn);
                 list.appendChild(li);
             });
+            console.log("[Objectives] Objective list updated.");
         }
 
         function completeObjective(index) {
@@ -123,10 +128,12 @@
                 userPoints += 10;
                 completedObjectives.push(objectives[index]);
                 objectives.splice(index, 1); // Remove completed objective from the list
+                console.log(`[Objective Completed] Objective: ${objectives[index].name}, Points Awarded: 10`);
                 updateObjectives();
                 updateCompletedObjectives();
                 alert("Objective completed! You earned 10 points.");
             } else {
+                console.log("[Objective Completed] Error: Incorrect completion code.");
                 alert("Incorrect completion code!");
             }
         }
@@ -140,6 +147,7 @@
                 li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
                 list.appendChild(li);
             });
+            console.log("[Completed Objectives] Updated completed objectives list.");
         }
 
         function showPage(page) {
@@ -147,6 +155,7 @@
             document.getElementById("objectivesPage").style.display = "none";
             document.getElementById("completedPage").style.display = "none";
             document.getElementById(page).style.display = "block";
+            console.log(`[Navigation] Showing page: ${page}`);
         }
     </script>
 </body>
