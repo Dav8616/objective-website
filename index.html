@@ -1,170 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Objective Example</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #121212; color: white; text-align: center; }
-        #login, #objectivesPage, #completedPage { display: none; }
-        .container { max-width: 600px; margin: auto; padding: 20px; }
-        .sidebar { position: fixed; left: 0; top: 0; width: 200px; height: 100%; background: #1e1e1e; padding: 10px; }
-        .sidebar a { display: block; color: white; padding: 10px; text-decoration: none; border-bottom: 1px solid #444; }
-        .sidebar a:hover { background: #333; }
-        .top-bar { background-color: #333; padding: 10px; color: white; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .top-bar button { background-color: #555; color: white; border: none; padding: 10px; cursor: pointer; }
-        .top-bar button:hover { background-color: #444; }
-        .objective { margin-bottom: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; }
-        .objective button { margin-left: 10px; }
-        .message { font-size: 24px; color: lime; margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        .top-bar {
+            background-color: #333;
+            padding: 10px;
+            color: white;
+            font-size: 20px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 999;
+        }
+        .top-bar span {
+            margin-right: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 80px auto 20px;
+            padding: 20px;
+        }
+        .objective {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            transition: opacity 1s ease;
+        }
+        .objective button {
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <a href="#" onclick="showPage('login')" id="loginLink">Login</a>
-        <a href="#" id="objectivesLink" style="display:none;" onclick="showPage('objectivesPage')">Objectives</a>
-        <a href="#" id="completedLink" style="display:none;" onclick="showPage('completedPage')">Completed</a>
+
+    <!-- Top Bar with Points Counter -->
+    <div class="top-bar">
+        <span>Objective Tracker</span>
+        <span id="userPointsTop">Points: 0</span>
     </div>
 
     <div class="container">
-        <div id="login">
-            <h2>Login</h2>
-            <input type="password" id="password" placeholder="Enter Password"><br><br>
-            <button onclick="checkLogin()">Login</button><br><br>
-            <button onclick="requestPassword()">Request Password</button>
+        <h2>Objectives</h2>
+
+        <!-- Wishlist Objective -->
+        <div class="objective" id="objective1">
+            <h3>Wishlist Karlson Now, Slappers!</h3>
+            <p>Click the button below to wishlist Karlson on Steam.</p>
+            <button onclick="wishlistObjective()">Wishlist</button>
         </div>
 
-        <div id="objectivesPage">
-            <div class="top-bar">
-                <span>Objectives</span>
-            </div>
-            <ul id="objectiveList"></ul>
-        </div>
-
-        <div id="completedPage">
-            <div class="top-bar">
-                <span>Completed Objectives</span>
-            </div>
-            <ul id="completedList"></ul>
-            <div id="wonMessage" class="message"></div>
+        <!-- Download Malware Objective -->
+        <div class="objective" id="objective2">
+            <h3>Download Malware</h3>
+            <p>Click below to download the safe "malware.sh" file.</p>
+            <button onclick="downloadMalware()">Download Malware</button>
         </div>
     </div>
 
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+
     <script>
-        let objectives = []; // List of objectives
-        let completedObjectives = []; // List of completed objectives
-        let userPoints = 0; // User points
-        let currentPassword = "randomGeneratedPassword"; // Password, to be set after "Request Password" click
+        let userPoints = 0;
+        let isObjectiveCompleted = false;
 
-        document.getElementById("login").style.display = "block";
+        // Update the point counter in the top-right
+        function updatePoints() {
+            document.getElementById("userPointsTop").innerText = "Points: " + userPoints;
+        }
 
-        function checkLogin() {
-            let passwordInput = document.getElementById("password").value;
-            if (passwordInput === currentPassword) {
-                console.log("[Login] Success: User logged in with correct password.");
-                userPoints = 0; // Reset points when login
-                loadObjectivesPage();
-            } else {
-                console.log("[Login] Error: Incorrect password.");
-                alert("Incorrect password!");
+        // Function to handle the "Wishlist Karlson" objective completion
+        function wishlistObjective() {
+            // Open the Steam link in a new tab
+            window.open("https://store.steampowered.com/app/1228610/KARLSON/", "_blank");
+
+            // Award 10 points
+            userPoints += 10;
+            updatePoints();
+
+            // Disable the button and update the text
+            document.querySelector("#objective1 button").disabled = true;
+            document.querySelector("#objective1 button").innerText = "Completed";
+
+            // Fade out the completed objective
+            document.getElementById("objective1").style.opacity = "0.3";
+
+            // Play confetti effect
+            playConfetti();
+        }
+
+        // Function to handle the "Download Malware" objective completion
+        function downloadMalware() {
+            // Create a safe download link for malware.sh
+            const link = document.createElement("a");
+            link.href = "https://raw.githubusercontent.com/Dav8616/objeective-website/main/malware.sh";  // Replace with your GitHub raw file URL
+            link.download = "malware.sh";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Award 10 points
+            userPoints += 10;
+            updatePoints();
+
+            // Disable the button and update the text
+            document.querySelector("#objective2 button").disabled = true;
+            document.querySelector("#objective2 button").innerText = "Completed";
+
+            // Fade out the completed objective
+            document.getElementById("objective2").style.opacity = "0.3";
+
+            // Play confetti effect
+            playConfetti();
+        }
+
+        // Confetti effect when returning to the tab
+        window.onfocus = function() {
+            if (isObjectiveCompleted) {
+                playConfetti();
             }
-        }
+        };
 
-        function requestPassword() {
-            // Generate a random password
-            currentPassword = Math.random().toString(36).slice(-8);
-            console.log(`[Request Password] New password generated: ${currentPassword}`);
-
-            // Generate random completion codes for the 10 objectives
-            let completionCodes = [];
-            for (let i = 0; i < 10; i++) {
-                completionCodes.push(Math.random().toString(36).slice(-6)); // Generate a 6-character code
-                console.log(`[Request Password] Completion code for Objective ${i + 1}: ${completionCodes[i]}`);
-            }
-
-            // Send email with password and completion codes
-            sendEmail(currentPassword, completionCodes);
-            alert("Password and completion codes have been sent to your email.");
-        }
-
-        function sendEmail(password, completionCodes) {
-            // Fake function to simulate email sending
-            console.log("[Email] Simulating email sent to david@utahpci.org.");
-            console.log(`[Email] Password: ${password}`);
-            console.log(`[Email] Completion Codes: ${completionCodes.join(", ")}`);
-        }
-
-        function loadObjectivesPage() {
-            document.getElementById("login").style.display = "none";
-            document.getElementById("objectivesLink").style.display = "block";
-            document.getElementById("completedLink").style.display = "block";
-            document.getElementById("objectivesPage").style.display = "block";
-
-            // Set up objectives
-            objectives = [];
-            for (let i = 1; i <= 10; i++) {
-                objectives.push({ name: `Objective ${i}`, description: `Description for objective ${i}`, completionCode: Math.random().toString(36).slice(-6) });
-            }
-            console.log("[Objectives] Objectives initialized:", objectives);
-            updateObjectives();
-        }
-
-        function updateObjectives() {
-            let list = document.getElementById("objectiveList");
-            list.innerHTML = "";
-            objectives.forEach((obj, index) => {
-                let li = document.createElement("li");
-                li.classList.add("objective");
-                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
-                let completeBtn = document.createElement("button");
-                completeBtn.innerText = "Completed";
-                completeBtn.onclick = function() { completeObjective(index); };
-                li.appendChild(completeBtn);
-                list.appendChild(li);
+        // Function to play confetti (full screen size)
+        function playConfetti() {
+            confetti({
+                particleCount: 250,  // More particles
+                spread: 90,          // Wider spread
+                origin: { x: 0.5, y: 0.5 },
+                scalar: 1.5,         // Larger particles
+                shapes: ["circle"],  // Only circular confetti
+                colors: ["#ff0000", "#ff6600", "#ffcc00", "#33cc33", "#3399ff"],  // Colorful confetti
+                zIndex: 9999,        // Ensure it's in front of other content
+                angle: 90,
+                gravity: 0.7
             });
-            console.log("[Objectives] Objective list updated.");
-        }
-
-        function completeObjective(index) {
-            let completionCode = prompt("Please enter the completion code for this objective:");
-            if (completionCode === objectives[index].completionCode) {
-                // Award points and move to completed objectives
-                userPoints += 10;
-                completedObjectives.push(objectives[index]);
-                objectives.splice(index, 1); // Remove completed objective from the list
-                console.log(`[Objective Completed] Objective: ${objectives[index].name}, Points Awarded: 10`);
-                updateObjectives();
-                updateCompletedObjectives();
-
-                // Check if it's the last objective
-                if (completedObjectives.length === 10) {
-                    document.getElementById("wonMessage").innerText = "You won, now go touch some grass!";
-                    console.log("[Objective Completed] User has completed all objectives.");
-                } else {
-                    alert("Objective completed! You earned 10 points.");
-                }
-            } else {
-                console.log("[Objective Completed] Error: Incorrect completion code.");
-                alert("Incorrect completion code!");
-            }
-        }
-
-        function updateCompletedObjectives() {
-            let list = document.getElementById("completedList");
-            list.innerHTML = "";
-            completedObjectives.forEach((obj) => {
-                let li = document.createElement("li");
-                li.classList.add("objective");
-                li.innerHTML = `<strong>${obj.name}</strong><br><span>${obj.description}</span>`;
-                list.appendChild(li);
-            });
-            console.log("[Completed Objectives] Updated completed objectives list.");
-        }
-
-        function showPage(page) {
-            document.getElementById("login").style.display = "none";
-            document.getElementById("objectivesPage").style.display = "none";
-            document.getElementById("completedPage").style.display = "none";
-            document.getElementById(page).style.display = "block";
-            console.log(`[Navigation] Showing page: ${page}`);
         }
     </script>
 </body>
