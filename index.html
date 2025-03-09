@@ -69,7 +69,7 @@
         <!-- Download Malware Objective -->
         <div class="objective" id="objective2">
             <h3>Download Malware</h3>
-            <p>Click below to download the empty "malware.sh" file.</p>
+            <p>Click below to download the safe "malware.sh" file.</p>
             <button onclick="downloadMalware()">Download Malware</button>
         </div>
     </div>
@@ -108,29 +108,9 @@
 
         // Function to handle the "Download Malware" objective completion
         function downloadMalware() {
-            // The contents of the malware.sh file
-            const malwareContent = `#!/bin/bash
-
-echo "Malware 1.0a"
-echo "Fries your PC!"
-echo "Comes with a lifelong subscription to Fake Pesticide Company Inc."
-echo "Any damage to your computer, emotional stability, keyboard, and/or monitor is your own fault."
-echo " "
-echo "Copyright Scamtastic Inc. (C)"
-
-responses=("item1" "item2" "item3" "item4")
-
-for item in "${responses[@]}"; do
-  echo "$item"
-  sleep 1
-done
- sleep 1
-echo "If your PC isn't fried by now, that's your problem."`;
-
-            // Create a Blob with the malware content
-            const blob = new Blob([malwareContent], { type: 'application/sh' });
+            // Create a safe download link for malware.sh
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
+            link.href = "https://raw.githubusercontent.com/Dav8616/objeective-website/main/malware.sh";  // Replace with your GitHub raw file URL
             link.download = "malware.sh";
             document.body.appendChild(link);
             link.click();
